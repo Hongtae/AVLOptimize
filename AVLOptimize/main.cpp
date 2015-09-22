@@ -70,9 +70,13 @@ struct Tree2Allocator
 using Tree1 = DKFoundation::DKAVLTree<u_int32_t, u_int32_t,
 	DKFoundation::DKTreeComparison<u_int32_t, u_int32_t>,
 	DKFoundation::DKTreeComparison<u_int32_t, u_int32_t>,
-	DKFoundation::DKTreeCopyValue<u_int32_t>, Tree1Allocator>;
+	DKFoundation::DKTreeCopyValue<u_int32_t>,
+	Tree1Allocator>;
 
-using Tree2 = DKFoundation2::DKAVLTree<u_int32_t>;
+using Tree2 = DKFoundation2::DKAVLTree<u_int32_t,
+	DKFoundation::DKTreeComparison<u_int32_t, u_int32_t>,
+	DKFoundation::DKTreeCopyValue<u_int32_t>,
+	Tree2Allocator>;
 
 using Timer = DKFoundation::DKTimer;
 
@@ -96,7 +100,7 @@ int main(int argc, const char * argv[]) {
 
 	printf("Debug Mode: %d\n", debugMode);
 
-	size_t numSamples = 0x1ffffff;
+	size_t numSamples = 0xffffff << 1;
 	std::vector<u_int32_t> samples;
 	samples.reserve(numSamples);
 	for (size_t i = 0; i < numSamples; ++i)
