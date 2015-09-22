@@ -90,7 +90,7 @@ int main(int argc, const char * argv[]) {
 	std::cout << "Hello, World!\n";
 
 
-	size_t numSamples = 0xffffff;
+	size_t numSamples = 0x1ffffff;
 	std::vector<u_int32_t> samples;
 	samples.reserve(numSamples);
 	for (size_t i = 0; i < numSamples; ++i)
@@ -129,6 +129,7 @@ int main(int argc, const char * argv[]) {
 		Timer timer;
 		auto t2Comp = DKFoundation::DKTreeComparison<u_int32_t, uint32_t>();
 		printf("Testing tree2... (%lu items)\n", samples.size());
+		timer.Reset();
 		for (u_int32_t v : samples)
 		{
 			if (!t2.Insert(v))
@@ -139,8 +140,8 @@ int main(int argc, const char * argv[]) {
 		double d = timer.Elapsed();
 		printf("tree2 insert elapsed: %f\n", d);
 	};
-	test2();
 	test1();
+	test2();
 
 	if (t1.Count() == t2.Count() && t1.rootNode && t2.rootNode)
 	{
