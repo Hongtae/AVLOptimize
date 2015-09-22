@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		8414DA131BA9B54F00108ACB /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8414DA121BA9B54F00108ACB /* main.cpp */; };
+		846DB8A11BB1B10600B2EC08 /* DKTimer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 846DB89F1BB1B10600B2EC08 /* DKTimer.cpp */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -27,6 +28,9 @@
 		8414DA121BA9B54F00108ACB /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		8414DA191BA9B59300108ACB /* DKAVLTree2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKAVLTree2.h; sourceTree = "<group>"; };
 		8414DA1A1BA9B59300108ACB /* DKAVLTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKAVLTree.h; sourceTree = "<group>"; };
+		846DB89F1BB1B10600B2EC08 /* DKTimer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DKTimer.cpp; sourceTree = "<group>"; };
+		846DB8A01BB1B10600B2EC08 /* DKTimer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKTimer.h; sourceTree = "<group>"; };
+		846DB8A21BB1B2D300B2EC08 /* DKFixedSizeAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKFixedSizeAllocator.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +63,9 @@
 		8414DA111BA9B54F00108ACB /* AVLOptimize */ = {
 			isa = PBXGroup;
 			children = (
+				846DB8A21BB1B2D300B2EC08 /* DKFixedSizeAllocator.h */,
+				846DB89F1BB1B10600B2EC08 /* DKTimer.cpp */,
+				846DB8A01BB1B10600B2EC08 /* DKTimer.h */,
 				8414DA191BA9B59300108ACB /* DKAVLTree2.h */,
 				8414DA1A1BA9B59300108ACB /* DKAVLTree.h */,
 				8414DA121BA9B54F00108ACB /* main.cpp */,
@@ -122,6 +129,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				846DB8A11BB1B10600B2EC08 /* DKTimer.cpp in Sources */,
 				8414DA131BA9B54F00108ACB /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

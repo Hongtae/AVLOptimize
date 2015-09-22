@@ -1,6 +1,36 @@
-#pragma once
+//
+//  File: DKAVLTree.h
+//  Author: Hongtae Kim (tiff2766@gmail.com)
+//
+//  Copyright (c) 2004-2015 Hongtae Kim. All rights reserved.
+//
 
+#pragma once
 #include <new>
+//#include "../DKInclude.h"
+//#include "DKTypeTraits.h"
+//#include "DKFunction.h"
+
+////////////////////////////////////////////////////////////////////////////////
+// DKAVLTree
+// AVL(Georgy Adelson-Velsky and Landis') tree template implementation.
+//
+// do balancing when weights diff > 2
+//
+// thread-safety: add, remove, find
+// If you need modify value directly, object should be locked previously.
+//
+// VALUE: value-type
+// KEY: key-type for searching
+// CMPV: value to value comparison function or function object.
+// CMPK: value to key comparison function or function object. (searching only)
+// COPY: copy value function or function object.
+//   (used when Update() called, You can ignore this type if you don't call Update)
+//
+// Note:
+//  value's pointer will not be changed after balancing process.
+//  You can save pointer if you wish.
+///
 
 namespace DKFoundation2
 {
@@ -22,22 +52,18 @@ namespace DKFoundation2
 	};
 
 	template <
-		typename Value,										// value-type
-		typename Key,										// key-type (Lookup key)
-		typename ValueComparator = DKTreeComparison<Value, Value>,	// value comparison
-		typename KeyComparator = DKTreeComparison<Value, Key>,	// value, key comparison (lookup only)
-		typename CopyValue = DKTreeCopyValue<Value>,		// value copy
-		typename Allocator = DKMemoryDefaultAllocator		// memory allocator
+		typename Value,											// value-type
+		typename Comparator = DKTreeComparison<Value, Value>,	// value comparison
+		typename CopyValue = DKTreeCopyValue<Value>,			// value copy
+		typename Allocator = DKMemoryDefaultAllocator			// memory allocator
 	>
 	class DKAVLTree
 	{
-		class Node
+public:
+		struct Node
 		{
-		public:
-			Node(const Value& v)
-			: value(v), left(NULL), right(NULL), leftHeight(0), rightHeight(0)
-			{
-			}
+			Node(const Value& v) : value(v), left(NULL), right(NULL), leftHeight(0), rightHeight(0) {}
+
 			Value		value;
 			Node*		left;
 			Node*		right;
@@ -128,7 +154,7 @@ namespace DKFoundation2
 		{
 			if (rootNode)
 			{
-				LocationContext ctxt = {v};
+				LocationContext ctxt = {&v};
 				LocateNodeForValue(rootNode, &ctxt);
 				if (ctxt.balancedNode)
 					rootNode = ctxt.balancedNode;
@@ -146,118 +172,34 @@ namespace DKFoundation2
 		{
 			if (rootNode)
 			{
-				LocationContext ctxt = {v};
+				size_t c = this->count;
+				LocationContext ctxt = {&v};
 				LocateNodeForValue(rootNode, &ctxt);
 				if (ctxt.balancedNode)
-				{
 					rootNode = ctxt.balancedNode;
+
+				if (this->count != c)	// new item.
 					return &(ctxt.locatedNode->value);
-				}
 				return NULL;
 			}
 			count = 1;
 			rootNode = new(Allocator::Alloc(sizeof(Node))) Node(v);
 			return &(rootNode->value);
 		}
-		void Remove(const Key& k)
+		template <typename Key, typename KeyValueComparator>
+		void Remove(const Key& k, KeyValueComparator&& comp)
 		{
-			Node* parent = NULL;
-			Node* node = LookupNodeForKey(k, &parent);
-			if (node == NULL)
-				return;
-
-			Node* retrace = NULL;	// entry node to begin rotation.
-
-			if (node->left && node->right)
+			if (rootNode)
 			{
-				Node* replace = NULL;
-
-				// find biggest from left, smallest from right, and swap, remove node.
-				// after remove, rotate again
-
-				if (node->leftHeight > node->rightHeight)
+				LocationContext ctxt = { NULL, NULL, NULL };
+				TakeOutNodeForKey(rootNode, k, std::forward<KeyValueComparator>(comp), &ctxt);
+				Node* node = ctxt.locatedNode;
+				if (node)
 				{
-					// finding biggest from left and swap.
-					replace = node->left;
-					retrace = replace;
-
-					while (replace->right)
-					{
-						retrace = replace;
-						replace = replace->right;
-					}
-					if (replace != retrace)
-					{
-						retrace->right = replace->left;
-						replace->left = node->left;
-					}
-					replace->right = node->right;
-				}
-				else
-				{
-					// finding smallest from right and swap.
-					replace = node->right;
-					retrace = replace;
-
-					while (replace->left)
-					{
-						retrace = replace;
-						replace = replace->left;
-					}
-					if (replace != retrace)
-					{
-						retrace->left = replace->right;
-						replace->right = node->right;
-					}
-					replace->left = node->left;
-				}
-				// set 'node's parent with 'replace' as child-node
-				if (parent)
-				{
-					if (parent->left == node)
-						parent->left = replace;
-					else
-						parent->right = replace;
+					rootNode = ctxt.balancedNode;
+					DeleteNode(node);
 				}
 			}
-			else
-			{
-				retrace = parent;
-				if (retrace)
-				{
-					if (retrace->left == node)
-					{
-						if (node->left)
-							retrace->left = node->left;
-						else if (node->right)
-							retrace->left = node->right;
-						else
-							retrace->left = NULL;
-					}
-					else
-					{
-						if (node->left)
-							retrace->right = node->left;
-						else if (node->right)
-							retrace->right = node->right;
-						else
-							retrace->right = NULL;
-					}
-				}
-				else
-				{
-					if (node->left)
-						rootNode = node->left;
-					else
-						rootNode = node->right;
-				}
-			}
-
-			node->left = NULL;
-			node->right = NULL;
-			DeleteNode(node);
-			if (retrace)
-				Balancing(retrace);
 		}
 		void Clear(void)
 		{
@@ -266,9 +208,10 @@ namespace DKFoundation2
 			rootNode = NULL;
 			count = 0;
 		}
-		const Value* Find(const Key& k) const
+		template <typename Key, typename KeyValueComparator>
+		const Value* Find(const Key& k, KeyValueComparator&& cmp) const
 		{
-			const Node* node = LookupNodeForKey(k);
+			const Node* node = LookupNodeForKey(k, std::forward<KeyValueComparator>(cmp));
 			if (node)
 				return &node->value;
 			return NULL;
@@ -420,21 +363,52 @@ namespace DKFoundation2
 		}
 		struct LocationContext
 		{
-			const Value& value;
+			const Value* value;
 			Node* locatedNode;
 			Node* balancedNode;	// valid only if tree needs to be balanced.
 			int cmp;
 		};
-		// find item and delete node.
-		void DeleteNodeForValue(Node* node, LocationContext* ctxt)
+		void TakeOutLeftMostNode(Node* node, LocationContext* ctxt)
 		{
-			ctxt->cmp = valueComparator(node->value, ctxt->value);
+			if (node->left)
+			{
+				TakeOutLeftMostNode(node->left, ctxt);
+				node->left = ctxt->balancedNode;
+				ctxt->balancedNode = Balance(node);
+			}
+			else
+			{
+				ctxt->locatedNode = node;
+				ctxt->balancedNode = node->right;
+				node->right = NULL;
+			}
+		}
+		void TakeOutRightMostNode(Node* node, LocationContext* ctxt)
+		{
+			if (node->right)
+			{
+				TakeOutRightMostNode(node->right, ctxt);
+				node->right = ctxt->balancedNode;
+				ctxt->balancedNode = Balance(node);
+			}
+			else
+			{
+				ctxt->locatedNode = node;
+				ctxt->balancedNode = node->left;
+				node->left = NULL;
+			}
+		}
+		// find item and delete node.
+		template <typename Key, typename KeyComparator>
+		void TakeOutNodeForKey(Node* node, const Key& key, KeyComparator&& comp, LocationContext* ctxt)
+		{
+			ctxt->cmp = comp(node->value, key);
 			if (ctxt->cmp > 0)
 			{
 				if (node->left)
 				{
-					DeleteNodeForValue(node->left, ctxt);
-					if (ctxt->balancedNode)
+					TakeOutNodeForKey(node->left, key, std::forward<KeyComparator>(comp), ctxt);
+					if (ctxt->locatedNode)
 					{
 						node->left = ctxt->balancedNode;
 						ctxt->balancedNode = Balance(node);
@@ -445,8 +419,8 @@ namespace DKFoundation2
 			{
 				if (node->right)
 				{
-					DeleteNodeForValue(node->right, ctxt);
-					if (ctxt->balancedNode)
+					TakeOutNodeForKey(node->right, key, std::forward<KeyComparator>(comp), ctxt);
+					if (ctxt->locatedNode)
 					{
 						node->right = ctxt->balancedNode;
 						ctxt->balancedNode = Balance(node);
@@ -455,6 +429,35 @@ namespace DKFoundation2
 			}
 			else
 			{
+				if (node->left && node->right)
+				{
+					if (node->leftHeight > node->rightHeight)
+					{
+						TakeOutRightMostNode(node->left, ctxt);
+						ctxt->locatedNode->left = ctxt->balancedNode;
+						ctxt->locatedNode->right = node->right;
+					}
+					else
+					{
+						TakeOutLeftMostNode(node->right, ctxt);
+						ctxt->locatedNode->right = ctxt->balancedNode;
+						ctxt->locatedNode->left = node->left;
+					}
+					node->left = NULL;
+					node->right = NULL;
+					ctxt->balancedNode = Balance(ctxt->locatedNode);
+					ctxt->locatedNode = node;
+				}
+				else
+				{
+					ctxt->locatedNode = node;
+					if (node->left)
+						ctxt->balancedNode = node->left;
+					else
+						ctxt->balancedNode = node->right;
+					node->left = NULL;
+					node->right = NULL;
+				}
 			}
 		}
 		// locate node for value. (create if not exists)
@@ -462,7 +465,7 @@ namespace DKFoundation2
 		// stack variables, because of called recursively.
 		void LocateNodeForValue(Node* node, LocationContext* ctxt)
 		{
-			ctxt->cmp = valueComparator(node->value, ctxt->value);
+			ctxt->cmp = comparator(node->value, *ctxt->value);
 			if (ctxt->cmp > 0)
 			{
 				if (node->left)
@@ -476,7 +479,7 @@ namespace DKFoundation2
 				}
 				else
 				{
-					node->left = new(Allocator::Alloc(sizeof(Node))) Node(ctxt->value);
+					node->left = new(Allocator::Alloc(sizeof(Node))) Node(*ctxt->value);
 					node->leftHeight = 1;
 					ctxt->locatedNode = node->left;
 					ctxt->balancedNode = node->right ? NULL : node;
@@ -497,7 +500,7 @@ namespace DKFoundation2
 				}
 				else
 				{
-					node->right = new(Allocator::Alloc(sizeof(Node))) Node(ctxt->value);
+					node->right = new(Allocator::Alloc(sizeof(Node))) Node(*ctxt->value);
 					node->rightHeight = 1;
 					ctxt->locatedNode = node->right;
 					ctxt->balancedNode = node->left ? NULL : node;
@@ -511,61 +514,31 @@ namespace DKFoundation2
 				ctxt->balancedNode = NULL;
 			}
 		}
-		// find node 'k' and return. (return NULL if not exists)
-		Node* LookupNodeForKey(const Key& k, Node** parent)
+		template <typename Key, typename KeyComparator>
+		Node* LookupNodeForKey(const Key& k, KeyComparator&& comp)
 		{
-			return const_cast<Node*>(static_cast<const DKAVLTree&>(*this).LookupNodeForKey(k, parent));
+			return const_cast<Node*>(static_cast<const DKAVLTree&>(*this).LookupNodeForKey(k, std::forward<KeyComparator>(comp)));
 		}
-		const Node* LookupNodeForKey(const Key& k, const Node** parent)
-		{
-			Node* pnode = NULL;
-			Node* node = rootNode;
-			while (node)
-			{
-				int cmp = keyCompareFunc(node->value, k);
-				if (cmp > 0)
-				{
-					pnode = node;
-					node = pnode->left;
-				}
-				else if (cmp < 0)
-				{
-					pnode = node;
-					node = pnode->right;
-				}
-				else
-				{
-					if (parent)
-						*parent = pnode;
-					return node;
-				}
-			}
-			return NULL;
-		}
-		Node* LookupNodeForKey(const Key& k)
-		{
-			return const_cast<Node*>(static_cast<const DKAVLTree&>(*this).LookupNodeForKey(k));
-		}
-		const Node* LookupNodeForKey(const Key& k) const
+		template <typename Key, typename KeyComparator>
+		const Node* LookupNodeForKey(const Key& k, KeyComparator&& comp) const
 		{
 			Node* node = rootNode;
 			while (node)
 			{
-				int cmp = keyCompareFunc(node->value, k);
-				if (cmp > 0)
+				int d = comp(node->value, k);
+				if (d > 0)
 					node = node->left;
-				else if (cmp < 0)
+				else if (d < 0)
 					node = node->right;
 				else
 					return node;
 			}
 			return NULL;
 		}
-
+public:
 		Node*			rootNode;
 		size_t			count;
-		ValueComparator		valueComparator;
-		KeyComparator		keyComparator;
-		CopyValue			copyValue;
+		Comparator		comparator;
+		CopyValue		copyValue;
 	};
 }

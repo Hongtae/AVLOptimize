@@ -62,6 +62,7 @@ namespace DKFoundation
 	>
 	class DKAVLTree
 	{
+	public:
 		class Node
 		{
 		public:
@@ -549,7 +550,7 @@ namespace DKFoundation
 			}
 			return NULL;
 		}
-
+	public:
 		Node*				rootNode;
 		size_t				count;
 		ValueComparator		valueComparator;
