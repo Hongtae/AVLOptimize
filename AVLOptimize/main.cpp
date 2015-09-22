@@ -32,7 +32,13 @@ template <typename T> struct DKFunctionType
 	};
 };
 
+#ifdef DEBUG
 #define FORCEINLINE
+const int debugMode = true;
+#else
+#define FORCEINLINE __attribute__((always_inline))
+const int debugMode = false;
+#endif
 
 
 #include "DKAVLTree.h"
@@ -87,8 +93,8 @@ void EnumerateTreeNode(Node* node, std::vector<Node*>& vec)
 
 int main(int argc, const char * argv[]) {
 	// insert code here...
-	std::cout << "Hello, World!\n";
 
+	printf("Debug Mode: %d\n", debugMode);
 
 	size_t numSamples = 0x1ffffff;
 	std::vector<u_int32_t> samples;
@@ -111,7 +117,12 @@ int main(int argc, const char * argv[]) {
 	auto test1 = [&]()
 	{
 		Timer timer;
+
+		t1.Update(1);	// warm up.
+		t1.Clear();
+
 		printf("Testing tree1... (%lu items)\n", samples.size());
+
 		timer.Reset();
 		for (u_int32_t v : samples)
 		{
@@ -128,6 +139,10 @@ int main(int argc, const char * argv[]) {
 	{
 		Timer timer;
 		auto t2Comp = DKFoundation::DKTreeComparison<u_int32_t, uint32_t>();
+
+		t2.Update(1);	// warm up.
+		t2.Clear();
+
 		printf("Testing tree2... (%lu items)\n", samples.size());
 		timer.Reset();
 		for (u_int32_t v : samples)
@@ -140,8 +155,17 @@ int main(int argc, const char * argv[]) {
 		double d = timer.Elapsed();
 		printf("tree2 insert elapsed: %f\n", d);
 	};
-	test1();
-	test2();
+
+	if (arc4random() % 2)
+	{
+		test1();
+		test2();
+	}
+	else
+	{
+		test2();
+		test1();
+	}
 
 	if (t1.Count() == t2.Count() && t1.rootNode && t2.rootNode)
 	{

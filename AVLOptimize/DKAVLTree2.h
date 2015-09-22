@@ -159,7 +159,7 @@ public:
 				if (ctxt.balancedNode)
 					rootNode = ctxt.balancedNode;
 				else
-					copyValue(ctxt.locatedNode, v);
+					copyValue(ctxt.locatedNode->value, v);
 				return &(ctxt.locatedNode->value);
 			}
 			count = 1;
