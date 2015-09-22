@@ -89,20 +89,6 @@ public:
 				node->rightHeight = rightHeight;
 				return node;
 			}
-			template <typename R> bool EnumerateForward(R&& enumerator)
-			{
-				if (left && left->EnumerateForward(std::forward<R>(enumerator)))	return true;
-				if (enumerator(value))												return true;
-				if (right && right->EnumerateForward(std::forward<R>(enumerator)))	return true;
-				return false;
-			}
-			template <typename R> bool EnumerateBackward(R&& enumerator)
-			{
-				if (right && right->EnumerateBackward(std::forward<R>(enumerator)))	return true;
-				if (enumerator(value))												return true;
-				if (left && left->EnumerateBackward(std::forward<R>(enumerator)))	return true;
-				return false;
-			}
 			template <typename R> bool EnumerateForward(R&& enumerator) const
 			{
 				if (left && left->EnumerateForward(std::forward<R>(enumerator)))	return true;
@@ -244,31 +230,6 @@ public:
 			count = s.count;
 			return *this;
 		}
-		// lambda enumerator (VALUE&, bool*)
-		template <typename T> void EnumerateForward(T&& enumerator)
-		{
-			static_assert(DKFunctionType<T&&>::Signature::template CanInvokeWithParameterTypes<Value&, bool*>(),
-						  "enumerator's parameter is not compatible with (VALUE&, bool*)");
-
-			if (count > 0)
-			{
-				bool stop = false;
-				auto func = [=, &enumerator](Value& v) mutable -> bool {enumerator(v, &stop); return stop;};
-				rootNode->EnumerateForward(func);
-			}
-		}
-		template <typename T> void EnumerateBackward(T&& enumerator)
-		{
-			static_assert(DKFunctionType<T&&>::Signature::template CanInvokeWithParameterTypes<Value&, bool*>(),
-						  "enumerator's parameter is not compatible with (VALUE&, bool*)");
-
-			if (count > 0)
-			{
-				bool stop = false;
-				auto func = [=, &enumerator](Value& v) mutable -> bool {enumerator(v, &stop); return stop;};
-				rootNode->EnumerateBackward(func);
-			}
-		}
 		// lambda enumerator bool (const VALUE&, bool*)
 		template <typename T> void EnumerateForward(T&& enumerator) const
 		{
@@ -327,7 +288,7 @@ public:
 			node->rightHeight = node->right ? node->right->Height() : 0;
 		}
 		// balance tree weights.
-		Node* Balance(Node* node)
+		FORCEINLINE Node* Balance(Node* node)
 		{
 			Node* node2 = node;
 			int left = node->left ? node->left->Height() : 0;
@@ -515,12 +476,7 @@ public:
 			}
 		}
 		template <typename Key, typename KeyComparator>
-		Node* LookupNodeForKey(const Key& k, KeyComparator&& comp)
-		{
-			return const_cast<Node*>(static_cast<const DKAVLTree&>(*this).LookupNodeForKey(k, std::forward<KeyComparator>(comp)));
-		}
-		template <typename Key, typename KeyComparator>
-		const Node* LookupNodeForKey(const Key& k, KeyComparator&& comp) const
+		FORCEINLINE const Node* LookupNodeForKey(const Key& k, KeyComparator&& comp) const
 		{
 			Node* node = rootNode;
 			while (node)

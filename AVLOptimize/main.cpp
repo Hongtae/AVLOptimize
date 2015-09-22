@@ -95,12 +95,11 @@ void EnumerateTreeNode(Node* node, std::vector<Node*>& vec)
 		EnumerateTreeNode(node->right, vec);
 }
 
-int main(int argc, const char * argv[]) {
-	// insert code here...
-
+int main(int argc, const char * argv[])
+{
 	printf("Debug Mode: %d\n", debugMode);
 
-	size_t numSamples = 0xffffff << 1;
+	size_t numSamples = 0xffffff;
 	std::vector<u_int32_t> samples;
 	samples.reserve(numSamples);
 	for (size_t i = 0; i < numSamples; ++i)
@@ -118,6 +117,8 @@ int main(int argc, const char * argv[]) {
 	Tree1 t1;
 	Tree2 t2;
 
+	const int numLoops = 15;
+
 	auto test1 = [&]()
 	{
 		Timer timer;
@@ -125,14 +126,17 @@ int main(int argc, const char * argv[]) {
 		t1.Update(1);	// warm up.
 		t1.Clear();
 
-		printf("Testing tree1... (%lu items)\n", samples.size());
+		printf("Testing tree1... (%lu items x %d)\n", samples.size(), numLoops);
 
 		timer.Reset();
-		for (u_int32_t v : samples)
+		for (int i = 0; i < numLoops; ++i)
 		{
-			if (!t1.Insert(v))
+			for (u_int32_t v : samples)
 			{
-				t1.Remove(v);
+				if (!t1.Insert(v))
+				{
+					t1.Remove(v);
+				}
 			}
 		}
 		double d = timer.Elapsed();
@@ -147,13 +151,16 @@ int main(int argc, const char * argv[]) {
 		t2.Update(1);	// warm up.
 		t2.Clear();
 
-		printf("Testing tree2... (%lu items)\n", samples.size());
+		printf("Testing tree2... (%lu items x %d)\n", samples.size(), numLoops);
 		timer.Reset();
-		for (u_int32_t v : samples)
+		for (int i = 0; i < numLoops; ++i)
 		{
-			if (!t2.Insert(v))
+			for (u_int32_t v : samples)
 			{
-				t2.Remove(v, t2Comp);
+				if (!t2.Insert(v))
+				{
+					t2.Remove(v, t2Comp);
+				}
 			}
 		}
 		double d = timer.Elapsed();
