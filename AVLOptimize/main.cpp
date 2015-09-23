@@ -105,7 +105,7 @@ int main(int argc, const char * argv[])
 	for (size_t i = 0; i < numSamples; ++i)
 	{
 		u_int32_t v = arc4random();
-		v = v % 0xffff;
+		v = v % (numSamples/2);
 		samples.push_back(v);
 	}
 
@@ -117,66 +117,141 @@ int main(int argc, const char * argv[])
 	Tree1 t1;
 	Tree2 t2;
 
-	const int numLoops = 15;
+	const int numLoops = 1;
 
-	auto test1 = [&]()
+	auto ir_test1 = [&]()
 	{
 		Timer timer;
+		size_t numInsert = 0;
+		size_t numRemove = 0;
 
 		t1.Update(1);	// warm up.
 		t1.Clear();
 
-		printf("Testing tree1... (%lu items x %d)\n", samples.size(), numLoops);
+		printf("Testing insert/remove Tree1... (%lu items x %d)\n", samples.size(), numLoops);
 
 		timer.Reset();
 		for (int i = 0; i < numLoops; ++i)
 		{
 			for (u_int32_t v : samples)
 			{
-				if (!t1.Insert(v))
+				if (t1.Insert(v))
+					numInsert++;
+				else
 				{
 					t1.Remove(v);
+					numRemove++;
 				}
 			}
 		}
 		double d = timer.Elapsed();
-		printf("tree1 insert elapsed: %f\n", d);
+		printf("Tree1 insert: %zu / remove: %zu elapsed: %f\n", numInsert, numRemove, d);
 	};
 
-	auto test2 = [&]()
+	auto ir_test2 = [&]()
 	{
 		Timer timer;
-		auto t2Comp = DKFoundation::DKTreeComparison<u_int32_t, uint32_t>();
+		auto t2Comp = DKFoundation2::DKTreeComparator<u_int32_t, uint32_t>();
+		size_t numInsert = 0;
+		size_t numRemove = 0;
 
 		t2.Update(1);	// warm up.
 		t2.Clear();
 
-		printf("Testing tree2... (%lu items x %d)\n", samples.size(), numLoops);
+		printf("Testing insert/remove Tree2... (%lu items x %d)\n", samples.size(), numLoops);
 		timer.Reset();
 		for (int i = 0; i < numLoops; ++i)
 		{
 			for (u_int32_t v : samples)
 			{
-				if (!t2.Insert(v))
+				if (t2.Insert(v))
+					numInsert++;
+				else
 				{
 					t2.Remove(v, t2Comp);
+					numRemove++;
 				}
 			}
 		}
 		double d = timer.Elapsed();
-		printf("tree2 insert elapsed: %f\n", d);
+		printf("Tree2 insert: %zu / remove: %zu elapsed: %f\n", numInsert, numRemove, d);
 	};
 
+	auto sr_test1 = [&]()
+	{
+		Timer timer;
+
+		printf("Testing Search Tree1(Count: %lu)... (%lu items x %d)\n", t1.Count(), samples.size(), numLoops);
+
+		size_t found = 0;
+		size_t missed = 0;
+
+		timer.Reset();
+		for (int i = 0; i < numLoops; ++i)
+		{
+			for (u_int32_t v : samples)
+			{
+				auto p = t1.Find(v);
+				if (p)
+					found++;
+				else
+					missed++;
+			}
+		}
+		double d = timer.Elapsed();
+		printf("Tree1 search (found: %zu, missed: %zu) elapsed: %f\n", found, missed, d);
+	};
+
+	auto sr_test2 = [&]()
+	{
+		Timer timer;
+		auto t2Comp = DKFoundation2::DKTreeComparator<u_int32_t, uint32_t>();
+
+		printf("Testing Search Tree2(Count: %lu)... (%lu items x %d)\n", t2.Count(), samples.size(), numLoops);
+
+		size_t found = 0;
+		size_t missed = 0;
+
+		timer.Reset();
+		for (int i = 0; i < numLoops; ++i)
+		{
+			for (u_int32_t v : samples)
+			{
+				auto p = t2.Find(v, t2Comp);
+				if (p)
+					found++;
+				else
+					missed++;
+			}
+		}
+		double d = timer.Elapsed();
+		printf("Tree2 search (found: %zu, missed: %zu) elapsed: %f\n", found, missed, d);
+	};
+
+	printf("\nInsert/Remove test...\n");
 	if (arc4random() % 2)
 	{
-		test1();
-		test2();
+		ir_test1();
+		ir_test2();
 	}
 	else
 	{
-		test2();
-		test1();
+		ir_test2();
+		ir_test1();
 	}
+
+	printf("\nSearch test...\n");
+	if (arc4random() % 2)
+	{
+		sr_test1();
+		sr_test2();
+	}
+	else
+	{
+		sr_test2();
+		sr_test1();
+	}
+
 
 	if (t1.Count() == t2.Count() && t1.rootNode && t2.rootNode)
 	{

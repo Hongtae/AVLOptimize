@@ -17,35 +17,29 @@
 //
 // do balancing when weights diff > 2
 //
-// thread-safety: add, remove, find
-// If you need modify value directly, object should be locked previously.
-//
-// VALUE: value-type
-// KEY: key-type for searching
-// CMPV: value to value comparison function or function object.
-// CMPK: value to key comparison function or function object. (searching only)
-// COPY: copy value function or function object.
-//   (used when Update() called, You can ignore this type if you don't call Update)
-//
 // Note:
 //  value's pointer will not be changed after balancing process.
 //  You can save pointer if you wish.
-///
+//
+//  This class is not thread-safe. You need to use synchronization object
+//  to serialize of access in multi-threaded environment.
+//  Or simply use DKMap or DKSet instead, they are thread-safe.
+//
 
 namespace DKFoundation2
 {
-	template <typename VALUE, typename KEY> struct DKTreeComparison
+	template <typename VALUE, typename KEY> struct DKTreeComparator
 	{
-		int operator () (const VALUE& lhs, const KEY& rhs) const
+		FORCEINLINE int operator () (const VALUE& lhs, const KEY& rhs) const
 		{
 			if (lhs > rhs)				return 1;
 			else if (lhs < rhs)			return -1;
 			return 0;
 		}
 	};
-	template <typename VALUE> struct DKTreeCopyValue
+	template <typename VALUE> struct DKTreeReplacer
 	{
-		void operator () (VALUE& dst, const VALUE& src) const
+		FORCEINLINE void operator () (VALUE& dst, const VALUE& src) const
 		{
 			dst = src;
 		}
@@ -53,8 +47,8 @@ namespace DKFoundation2
 
 	template <
 		typename Value,											// value-type
-		typename Comparator = DKTreeComparison<Value, Value>,	// value comparison
-		typename CopyValue = DKTreeCopyValue<Value>,			// value copy
+		typename Comparator = DKTreeComparator<Value, Value>,	// value comparison
+		typename Replacer = DKTreeReplacer<Value>,				// value replacement
 		typename Allocator = DKMemoryDefaultAllocator			// memory allocator
 	>
 	class DKAVLTree
@@ -136,7 +130,7 @@ public:
 			Clear();
 		}
 		// Update: insertion if not exist or overwrite if exists.
-		const Value* Update(const Value& v)
+		FORCEINLINE const Value* Update(const Value& v)
 		{
 			if (rootNode)
 			{
@@ -145,7 +139,7 @@ public:
 				if (ctxt.balancedNode)
 					rootNode = ctxt.balancedNode;
 				else
-					copyValue(ctxt.locatedNode->value, v);
+					replacer(ctxt.locatedNode->value, v);
 				return &(ctxt.locatedNode->value);
 			}
 			count = 1;
@@ -154,7 +148,7 @@ public:
 		}
 		// Insert: insert if not exist or fail if exists.
 		//  returns NULL if function failed. (already exists)
-		const Value* Insert(const Value& v)
+		FORCEINLINE const Value* Insert(const Value& v)
 		{
 			if (rootNode)
 			{
@@ -173,7 +167,7 @@ public:
 			return &(rootNode->value);
 		}
 		template <typename Key, typename KeyValueComparator>
-		void Remove(const Key& k, KeyValueComparator&& comp)
+		FORCEINLINE void Remove(const Key& k, KeyValueComparator&& comp)
 		{
 			if (rootNode)
 			{
@@ -187,7 +181,7 @@ public:
 				}
 			}
 		}
-		void Clear(void)
+		FORCEINLINE void Clear(void)
 		{
 			if (rootNode)
 				DeleteNode(rootNode);
@@ -195,14 +189,14 @@ public:
 			count = 0;
 		}
 		template <typename Key, typename KeyValueComparator>
-		const Value* Find(const Key& k, KeyValueComparator&& cmp) const
+		FORCEINLINE const Value* Find(const Key& k, KeyValueComparator&& cmp) const
 		{
 			const Node* node = LookupNodeForKey(k, std::forward<KeyValueComparator>(cmp));
 			if (node)
 				return &node->value;
 			return NULL;
 		}
-		size_t Count(void) const
+		FORCEINLINE size_t Count(void) const
 		{
 			return count;
 		}
@@ -495,6 +489,6 @@ public:
 		Node*			rootNode;
 		size_t			count;
 		Comparator		comparator;
-		CopyValue		copyValue;
+		Replacer		replacer;
 	};
 }
