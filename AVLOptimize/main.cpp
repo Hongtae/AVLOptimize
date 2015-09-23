@@ -151,7 +151,7 @@ int main(int argc, const char * argv[])
 	auto ir_test2 = [&]()
 	{
 		Timer timer;
-		auto t2Comp = DKFoundation2::DKTreeComparator<u_int32_t, uint32_t>();
+		auto t2Comp = DKFoundation2::DKTreeItemComparator<u_int32_t, uint32_t>();
 		size_t numInsert = 0;
 		size_t numRemove = 0;
 
@@ -205,7 +205,7 @@ int main(int argc, const char * argv[])
 	auto sr_test2 = [&]()
 	{
 		Timer timer;
-		auto t2Comp = DKFoundation2::DKTreeComparator<u_int32_t, uint32_t>();
+		auto t2Comp = DKFoundation2::DKTreeItemComparator<u_int32_t, uint32_t>();
 
 		printf("Testing Search Tree2(Count: %lu)... (%lu items x %d)\n", t2.Count(), samples.size(), numLoops);
 

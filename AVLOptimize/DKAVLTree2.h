@@ -23,12 +23,12 @@
 //
 //  This class is not thread-safe. You need to use synchronization object
 //  to serialize of access in multi-threaded environment.
-//  Or simply use DKMap or DKSet instead, they are thread-safe.
+//  You can use DKMap, DKSet instead, they are thread safe.
 //
 
 namespace DKFoundation2
 {
-	template <typename VALUE, typename KEY> struct DKTreeComparator
+	template <typename VALUE, typename KEY> struct DKTreeItemComparator
 	{
 		FORCEINLINE int operator () (const VALUE& lhs, const KEY& rhs) const
 		{
@@ -37,7 +37,7 @@ namespace DKFoundation2
 			return 0;
 		}
 	};
-	template <typename VALUE> struct DKTreeReplacer
+	template <typename VALUE> struct DKTreeItemReplacer
 	{
 		FORCEINLINE void operator () (VALUE& dst, const VALUE& src) const
 		{
@@ -47,8 +47,8 @@ namespace DKFoundation2
 
 	template <
 		typename Value,											// value-type
-		typename Comparator = DKTreeComparator<Value, Value>,	// value comparison
-		typename Replacer = DKTreeReplacer<Value>,				// value replacement
+		typename Comparator = DKTreeItemComparator<Value, Value>,	// value comparison
+		typename Replacer = DKTreeItemReplacer<Value>,				// value replacement
 		typename Allocator = DKMemoryDefaultAllocator			// memory allocator
 	>
 	class DKAVLTree
