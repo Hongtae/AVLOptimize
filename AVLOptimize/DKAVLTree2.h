@@ -353,7 +353,7 @@ public:
 				node->left = NULL;
 			}
 		}
-		// find item and delete node.
+		// find item and take out from tree.
 		template <typename Key, typename KeyComparator>
 		void TakeOutNodeForKey(Node* node, const Key& key, KeyComparator&& comp, LocationContext* ctxt)
 		{
